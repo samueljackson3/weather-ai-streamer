@@ -37,9 +37,26 @@ touch progress.md
 - Review spec: `specs/00X-[topic].md`
 - Note: Prerequisites from previous sessions
 
+**Pre-Session Knowledge Check** (answer before writing any code):
+
+1. What do you already know about [session topic]?
+   Your answer:
+
+2. What concept from the previous session directly applies here?
+   Your answer:
+
+3. What's your biggest uncertainty going in?
+   Your answer:
+
+Return to these after completing Step XG to measure your growth.
+
 ---
 
 ### Step XA: [Simplest Foundation] (10-15 min)
+
+**Pre-Step Knowledge Check** (answer before generating code):
+- What do you expect this code to do?
+- What's one thing that could go wrong?
 
 **Prompt**:
 ```
@@ -68,16 +85,25 @@ Ask: "Show me what happens if I:"
 Try each - read error - understand why.
 ```
 
-**Concept Check**:
-- [Question 1 about core concept]
-- [Question 2 about why it works this way]
-- [Question 3 about when to use]
+**Concept Check** (answer without looking at code, then verify):
+- [Question 1]: What does [key element] actually do?
+  Your answer:
+- [Question 2]: Why does this work this way and not [alternative]?
+  Your answer:
+- [Question 3]: When in real code would you use this pattern?
+  Your answer:
+
+**Confidence rating**: __ / 5 — What would push it higher?
 
 **Mark**: `[x] Step XA` in progress.md
 
 ---
 
 ### Step XB: [Add Complexity Layer 1] (15-20 min)
+
+**Pre-Step Knowledge Check** (answer before generating code):
+- How does [new concept from XB] relate to what you built in XA?
+- What will change in behavior? What will stay the same?
 
 **Prompt**:
 ```
@@ -107,16 +133,25 @@ Before asking AI, try:
 If stuck after 10 min, ask for hints.
 ```
 
-**Concept Check**:
-- Why is [new approach] better/different?
-- When would I use [old] vs [new]?
-- What are trade-offs?
+**Concept Check** (answer before asking AI to verify):
+- Why is [new approach] different from XA? Not just what changed — why does it matter?
+  Your answer:
+- When would I stay with the XA approach vs use the XB approach?
+  Your answer:
+- What trade-offs did you observe (timing, complexity, readability)?
+  Your answer:
+
+**Confidence rating**: __ / 5
 
 **Mark**: `[x] Step XB`
 
 ---
 
 ### Step XC: [Add Complexity Layer 2] (20-25 min)
+
+**Pre-Step Knowledge Check** (answer before generating code):
+- What gap does [XC concept] fill that XA and XB didn't cover?
+- Predict: how will this change error behavior?
 
 **Prompt**:
 ```
@@ -144,16 +179,25 @@ Test edge cases:
 - [Edge case 3] - graceful degradation?
 ```
 
-**Concept Check**:
-- How does [concept] interact with previous steps?
-- What new patterns emerged?
-- Where might this fail in production?
+**Concept Check** (answer before asking AI to verify):
+- How does [XC concept] interact with what you built in XA and XB?
+  Your answer:
+- What new failure mode did this step expose?
+  Your answer:
+- Where might this pattern break in a production environment?
+  Your answer:
+
+**Confidence rating**: __ / 5
 
 **Mark**: `[x] Step XC`
 
 ---
 
 ### Step XD: [Real-World Integration] (25-30 min)
+
+**Pre-Step Knowledge Check** (answer before generating code):
+- How do the XA–XC patterns map to a real application you've seen or used?
+- What concerns emerge when moving from example code to production code?
 
 **Prompt**:
 ```
@@ -179,16 +223,25 @@ Ask: "Find a real open-source project using [this pattern].
 Explain how professionals structure this differently than my learning code."
 ```
 
-**Concept Check**:
-- How does learning code differ from production?
-- What's missing from my examples?
-- What would I add next for production-ready?
+**Concept Check** (answer before asking AI):
+- How does this learning code differ from what you'd ship in production?
+  Your answer:
+- What's missing from your XA–XC examples that the real-world version has?
+  Your answer:
+- What would you add to make this production-ready?
+  Your answer:
+
+**Confidence rating**: __ / 5
 
 **Mark**: `[x] Step XD`
 
 ---
 
 ### Step XE: [Build Your Own Challenge] (30-45 min)
+
+**Pre-Step Knowledge Check** (before writing a single line):
+- Can you describe the full solution approach without looking at earlier steps?
+- Which step (XA–XD) will be hardest to replicate? Why?
 
 **Challenge** (Do YOURSELF first - no AI):
 ```
@@ -206,6 +259,11 @@ Build incrementally:
 2. [Sub-task 2]
 3. [Sub-task 3]
 ```
+
+**Sub-task Knowledge Check** (after each sub-task, before the next):
+- Sub-task 1 done: What assumption did you make that could be wrong?
+- Sub-task 2 done: Does this behave the same as step XB? Why or why not?
+- Sub-task 3 done: What error would a real user trigger that your code doesn't handle yet?
 
 **Your Tasks**:
 1. Spend 20-30 min building yourself
@@ -227,16 +285,25 @@ What could improve:
 [Paste your code]"
 ```
 
-**Concept Check**:
-- Can you build this without constant AI help?
-- Can you explain your design decisions?
-- What would you do differently next time?
+**Post-Build Concept Check**:
+- Did you need AI help? For which parts? What does that reveal about gaps?
+  Your answer:
+- Explain your key design decisions in 2-3 sentences.
+  Your answer:
+- What would you do differently if you rebuilt this from scratch right now?
+  Your answer:
+
+**Confidence rating**: __ / 5
 
 **Mark**: `[x] Step XE - CRITICAL STEP`
 
 ---
 
 ### Step XF: [Testing & Validation] (20-25 min)
+
+**Pre-Step Knowledge Check** (before writing tests):
+- What behavior are you most uncertain about? Write a test for that first.
+- What's a realistic bad input or failure that a user could trigger?
 
 **Prompt**:
 ```
@@ -268,10 +335,15 @@ Try TDD:
 Do this for 2-3 small features.
 ```
 
-**Concept Check**:
-- What's hard to test? Why?
-- How do tests guide design?
-- When would I mock vs use real implementations?
+**Concept Check** (answer before asking AI):
+- What's hard to test here? What does that tell you about the design?
+  Your answer:
+- Did your tests catch the intentional breakage? If not, what's missing?
+  Your answer:
+- When would you mock vs use real implementations?
+  Your answer:
+
+**Confidence rating**: __ / 5
 
 **Mark**: `[x] Step XF`
 
@@ -279,7 +351,7 @@ Do this for 2-3 small features.
 
 ### Step XG: [Concept Self-Test] (15-20 min)
 
-**Test Yourself** (answer BEFORE asking AI):
+**Test Yourself** (answer BEFORE asking AI — no looking at previous steps):
 
 1. **[Core concept question]**
    Your answer:
@@ -294,6 +366,9 @@ Do this for 2-3 small features.
    Your answer:
    
 5. **[Real-world application question]**
+   Your answer:
+
+6. **[Connection to previous session question]**
    Your answer:
 
 **After Answering**:
@@ -315,6 +390,21 @@ Without looking at previous code, write:
 Can you do it? Time yourself.
 ```
 
+**Post-Scratch Concept Check**:
+- Where did you get stuck? What specifically caused the friction?
+  Your answer:
+- Compared to your Pre-Session answers, what changed most?
+  Your answer:
+- What question do you still have that this session didn't fully answer?
+  Your answer:
+
+**Final confidence ratings**:
+| Concept | Pre-session | Post-session | Gap explanation |
+|---------|-------------|--------------|-----------------|
+| [Concept 1] | __ / 5 | __ / 5 | |
+| [Concept 2] | __ / 5 | __ / 5 | |
+| [Concept 3] | __ / 5 | __ / 5 | |
+
 **Mark**: `[x] Step XG`
 
 ---
@@ -327,6 +417,14 @@ Can you do it? Time yourself.
 - [ ] Broke and fixed code in each step
 - [ ] Added your own variations
 - [ ] Tests written and passing
+
+### Knowledge Check Coverage
+- [ ] Answered Pre-Session check before starting
+- [ ] Answered Pre-Step check before each step (XA–XF)
+- [ ] Answered Concept Check after each step (XA–XF)
+- [ ] Completed XG self-test without looking at notes
+- [ ] Filled in confidence rating table in XG
+- [ ] Post-session answers differ meaningfully from pre-session answers
 
 ### Conceptual Understanding
 - [ ] Can explain [core concept 1] without notes

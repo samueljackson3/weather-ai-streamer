@@ -9,26 +9,27 @@
 
 ## Problem Statement
 
-[What you're trying to learn/build and why. Keep this to 2-3 sentences.]
-
-**Example**: Learn async fundamentals by building examples that demonstrate event loops, coroutines, and concurrent execution. This will provide the foundation for understanding FastAPI's async capabilities.
+[What you're trying to learn/build and why. 2-3 sentences max.]
 
 ---
 
 ## Learning Objectives
-
-[Specific concepts you'll understand after completing this session]
 
 - [ ] [Concrete concept to master]
 - [ ] [Pattern to apply]
 - [ ] [Comparison to make (e.g., async vs threads)]
 - [ ] [Something to explain in your own words]
 
-**Example**:
-- [ ] Understand how event loops manage concurrent tasks
-- [ ] Know when to use `await` vs `asyncio.gather()` vs `asyncio.create_task()`
-- [ ] Compare concurrent vs parallel vs sequential execution
-- [ ] Explain why async helps with I/O but not CPU-intensive work
+### Pre-Session Knowledge Check
+
+Answer BEFORE starting. Return to them after to measure growth.
+
+1. What do you already know about [core topic]?
+   Your answer:
+2. What's your biggest uncertainty or gap?
+   Your answer:
+3. How would you explain [key concept] to someone right now?
+   Your answer:
 
 ---
 
@@ -49,6 +50,13 @@
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | [What] | [Chosen option] | [Why this choice] |
+
+### Design Knowledge Check
+
+Before writing code:
+1. Why was [key design choice] selected over [alternative]?   Your answer:
+2. What would break if you changed [component]?   Your answer:
+3. Draw the data flow input → output without looking.   Your answer:
 
 ---
 
@@ -87,14 +95,18 @@ class ModelName(BaseModel):
     field2: int
 ```
 
+### Contract Knowledge Check
+
+1. Without looking, what does `GET /path/{param}` return on success? On a 404?   Your answer:
+2. What does `function_name` accept/return? What happens with bad input?   Your answer:
+3. Why does `ModelName` need both fields? What validates them?   Your answer:
+
 ---
 
 ## Success Criteria
 
-[Concrete, testable outcomes. Mix of code working AND conceptual understanding.]
-
 **Code Works**:
-- [ ] [Specific feature works - be precise]
+- [ ] [Specific feature works]
 - [ ] [Test passes]
 - [ ] [Edge case handled]
 
@@ -103,99 +115,65 @@ class ModelName(BaseModel):
 - [ ] Know when to use [pattern] vs [alternative]
 - [ ] Understand why [decision] was made
 
-**Example**:
-- [ ] Async examples show measurable timing improvement for I/O
-- [ ] Can trace execution order of concurrent tasks
-- [ ] Tests pass: sequential vs concurrent execution
-- [ ] Can explain event loop to another developer
+### Post-Session Knowledge Check
+
+Answer AFTER the session. Compare to Pre-Session answers.
+
+1. Explain [core concept] in your own words, as if teaching a junior dev.
+   Your answer:
+2. What's the biggest mistake a developer could make with [pattern]? How do you prevent it?
+   Your answer:
+3. When would you NOT use [approach learned]? What's the alternative?
+   Your answer:
+4. Rate your understanding (1–5) and explain the gap:
+   - Pre-session: __ / 5
+   - Post-session: __ / 5
+   - What's still unclear:
 
 ---
 
 ## Open Questions
 
-[Things you're unsure about - to research or decide during implementation. It's OK to not know!]
-
-- [ ] [Question 1 - will research during implementation]
-- [ ] [Question 2 - will ask AI for guidance]
+- [ ] [Question 1 — will research during implementation]
+- [ ] [Question 2 — will ask AI for guidance]
 - [ ] [Trade-off to evaluate while coding]
 
-**Example**:
-- [ ] Should we use threads instead of async for this use case?
-- [ ] How do we handle API timeouts gracefully?
-- [ ] What's the real-world difference between `gather()` and `as_completed()`?
+### Resolving Open Questions
+
+After implementation, revisit each:
+1. [Question 1]: What did you find?   Your answer:
+2. [Question 2]: What guidance did you get?   Your answer:
+3. [Trade-off]: Which option and why?   Your answer:
 
 ---
 
 ## Testing Strategy
 
-[What to test and how. Don't need to write tests yet, just plan the approach.]
-
 **Test Cases**:
-1. [Happy path test]
-2. [Error case test]
-3. [Edge case test]
+- [Happy path]
+- [Error case]
+- [Edge case]
 
-**Approach**:
-- Unit tests: [What to mock, what to test]
-- Integration tests: [If applicable]
-- Manual tests: [How to verify it works]
-
-**Example**:
-- Unit test: Mock async sleep, verify concurrent execution
-- Manual test: Run with print statements, observe timing
-- Error test: Remove `await`, verify it raises TypeError
-
----
-
-## Implementation Notes
-
-[Optional: Technical details, constraints, or reminders for implementation phase]
-
-**Key Patterns to Use**:
-- [Pattern 1]
-- [Pattern 2]
-
-**Libraries/Tools**:
-- [Library name]: [Purpose]
-
-**References**:
-- [Link to docs]
-- [Tutorial reference]
+**Approach**: Unit (mock externals) → Integration (if applicable) → Manual verification
 
 ---
 
 ## Rails Developer Notes
 
-[Optional: How this compares to Rails patterns. Helps bridge mental models.]
-
-**Rails equivalent**: [Similar pattern in Rails]  
+**Rails equivalent**: [Similar pattern]  
 **Key difference**: [How this is different in Python/FastAPI]
-
-**Example**:
-- **Rails**: Uses thread pools (Puma) for concurrency
-- **FastAPI**: Uses async event loop (single-threaded cooperative multitasking)
-- **When to use**: Rails for simple CRUD, FastAPI for high-concurrency I/O
 
 ---
 
-## Reflection (Fill out after implementation)
+## Reflection (fill out after implementation)
 
 **What worked well**:
-- [Thing that went smoothly]
-
 **What was challenging**:
-- [Difficult concept or bug]
+**Would specify differently**:
+**Key learning**:
 
 **Spec accuracy**:
-- [ ] Spec matched implementation closely
-- [ ] Spec needed significant revision
-- [ ] Open questions answered: [How]
-
-**Would specify differently**:
-- [What you'd change in the spec knowing what you know now]
-
-**Key learnings**:
-- [Most important thing you learned]
+- [ ] Matched implementation closely / [ ] Needed significant revision
 
 ---
 
@@ -204,18 +182,10 @@ class ModelName(BaseModel):
 ```
 [Session X] Implement [feature] per spec #00X
 
-- Add [component 1]
+- Add [component]
 - Implement [functionality]
-- Tests: [what was tested]
 
 Spec: specs/00X-spec-name.md
 ```
 
----
-
-**Notes**:
-- Keep specs lightweight (~1-2 pages max)
-- Update spec if design changes during implementation
-- It's OK to have open questions - you're learning!
-- Use spec as prompt for AI code generation
-- Focus on understanding, not perfect documentation
+**Notes**: Keep specs ~1-2 pages. Update if design changes. Use spec as AI prompt.

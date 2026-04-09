@@ -1,22 +1,6 @@
 # Learning Log - Weather AI Streamer
 
-**Project Start Date**: April 8, 2026  
-**Learning Approach**: Spec-driven development with AI assistance  
-**Total Budget**: 24-25 hours across 6 sessions
-
----
-
-## How to Use This Log
-
-After each session, record:
-1. **Time spent**: Actual hours (compare to estimate)
-2. **What I built**: Concrete deliverables
-3. **Key concepts**: Main ideas learned
-4. **Aha moment**: Most interesting insight
-5. **Still confused about**: Honest assessment of what's unclear
-6. **Questions for next session**: Carry-forward topics
-
-**Be honest**: This is for you, not for grading. Only through honesty can you identify real gaps.
+**Start**: April 8, 2026 | **Budget**: 24-25h across 6 sessions | **Approach**: Spec-driven, incremental micro-steps
 
 ---
 
@@ -25,7 +9,7 @@ After each session, record:
 **Date**: April 8, 2026  
 **Time spent**: _____ hours (estimate: 3.7h)  
 **Spec**: `specs/001-async-fundamentals.md`  
-**Status**: ✅ Spec created, Implementation complete and verified
+**Status**: ✅ Complete
 
 ### What I Built
 - [x] `specs/001-async-fundamentals.md` - Detailed spec with learning objectives and success criteria
@@ -133,123 +117,20 @@ _To explore during implementation:_
 - Environment variables: How do you handle secrets safely in production? → Beyond scope for now
 
 ### Improvements for Future Sessions
-1. **Better Step Progression**: Break Steps A-F into finer granularity (A-H perhaps)
-   - Step A: Health endpoint only (already good)
-   - Step B: Pydantic models (good)
-   - Step C: Config (good)
-   - Step D: Hardcoded response (good - let them test routing first)
-   - Step E: Real API call (SPLIT THIS)
-     - E1: Simple fetch without error handling
-     - E2: Add error handling for 404, 401, 500s
-   - Step F: Input validation (good)
-   - Future: Add Step G for async context managers / lifespan
+### Improvements Noted
+- Split Step E: basic fetch first, then error handling separately
+- Explain `**kwargs` unpacking before Pydantic models
+- macOS SSL: document `VERIFY_SSL=false` upfront
+- Add error scenario test list (empty city → 400, bad city → 404, bad enum → 422)
 
-2. **Teach `**kwargs` Unpacking**: Before Pydantic validation, explain what `**data` means
-   - Show the equivalence: `HealthResponse(**data) == HealthResponse(status="ok", version="0.1.0")`
-   - This helps understand Pydantic's magic
+### What Worked / What To Improve
+✅ Spec-driven approach, progressive steps, real API from day 1, concept checks  
+⚠️ SSL cert issue, Step E too large, `**kwargs` not explained upfront
 
-3. **Better Error Testing**: Add explicit section for "test these error scenarios"
-   - Empty city name → 400
-   - Non-existent city → 404
-   - Invalid units enum → 422
-   - Include expected response bodies in examples
-
-4. **Production Readiness Earlier**: SSL verification, environment variables weren't emphasized enough
-   - Move to Step C or create Step C.5 for environment-aware config
-   - Show how `VERIFY_SSL=false` in dev, `VERIFY_SSL=true` in prod
-
-5. **Concept Checks with Explanations**: Great to ask questions, but when user answer is incomplete:
-   - Explain WHY the full answer matters
-   - Show what goes wrong with the incomplete understanding
-   - Example: "SSL verification disabled is a security risk because..."
-
-6. **Code Comments**: Add more inline explanations of FastAPI magic
-   - Why `response_model=WeatherResponse` (validates output, powers docs)
-   - Why `-> WeatherResponse` return type hint (helps IDE, helps type checker)
-   - Why separate `fetch_weather()` function (testable, reusable)
-
-7. **Testing Preview**: Add note about pytest-asyncio patterns early
-   - Shows how the business logic is designed to be testable
-   - Motivates the separation of concerns
-
-### What Worked Well
-✅ Spec-driven approach - knowing where we were going helped prioritize
-✅ Progressive steps - each step built on previous, clear learning
-✅ Real API integration - not just mocks, actual OpenWeather calls
-✅ Error handling from day 1 - made it feel production-ready
-✅ Concept checks - forced understanding, not just typing code
-✅ Config as part of core - showed best practices early
-✅ Pydantic's auto-docs - magic moment when `/docs` worked perfectly
-
-### What To Improve
-⚠️ SSL certificate issue - wasted time on macOS SSL verification
-  → Document this upfront: "On macOS, you may need `VERIFY_SSL=false` in .env"
-⚠️ Step E too large - combining real API call + error handling at once
-  → Split into E1 (basic fetch), E2 (error handling)
-⚠️ Didn't explain `**kwargs` unpacking before using it
-  → Add 2-minute explanation before Pydantic models
-⚠️ Didn't emphasize lifespan/dependency injection until end
-  → Move Step F note about `Depends()` earlier as preview
-
-### Questions for Next Session
-1. How does FastAPI use async under the hood for handling requests?
-2. What's the difference between `httpx.AsyncClient` and regular `requests` library?
-3. Can you mix sync and async code in the same FastAPI app? 
-
-### Spec Accuracy
-- [ ] Spec matched implementation closely
-- [ ] Spec needed significant revision
-- [ ] Spec was helpful for AI code generation
-- [ ] Spec was too rigid/detailed
-- [ ] Spec was too vague
-
-### Notes
-_Any other observations, struggles, or wins_
-
-
----
-
-## Session 2: FastAPI + Weather API
-
-**Date**: _____________  
-**Time spent**: _____ hours (estimate: 3.7h)  
-**Spec**: `specs/002-fastapi-weather-api.md`
-
-### What I Built
-- [ ] `main.py` - FastAPI application
-- [ ] `models.py` - Pydantic schemas
-- [ ] `config.py` - Environment configuration
-- [ ] Weather endpoint with OpenWeather API
-
-### Key Concepts
-1. 
-2. 
-3. 
-
-### Aha Moment
-
-
-
-### Still Confused About
-
-
-
-### Questions for Next Session
-1. 
-2. 
-
-### Spec Accuracy
-- [ ] Spec matched implementation closely
-- [ ] Spec needed significant revision
-- [ ] Spec was helpful for AI code generation
-
-### Comparison to Rails
-_How does this compare to Rails patterns I know?_
-
-
-### Notes
-
-
+### Questions for Session 3
+1. How does FastAPI handle async requests under the hood?
+2. Difference between `httpx.AsyncClient` and `requests`?
+3. Can you mix sync and async in the same FastAPI app?
 
 ---
 
@@ -260,7 +141,7 @@ _How does this compare to Rails patterns I know?_
 **Spec**: `specs/003-ollama-streaming.md`
 
 ### What I Built
-- [ ] `ollama_client.py` - LLM integration
+- [ ] Ollama client integration
 - [ ] Streaming endpoint with SSE
 - [ ] Frontend with EventSource API
 - [ ] Prompt engineering for weather
@@ -309,27 +190,27 @@ _Which models did you try? Speed/quality trade-offs?_
 - [ ] All services running in Docker
 
 ### Key Concepts
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
-### Aha Moment
-
-
-
-### Still Confused About
+### Aha Moment / Still Confused About / Questions for Next
 
 
 
-### Debugging Stories
-_What broke? How did you fix it?_
+---
 
+## Session 4: Docker Containerization
 
-### Spec Accuracy
-- [ ] Spec matched implementation closely
-- [ ] Spec needed significant revision
+**Date**: _____________  
+**Time spent**: _____ hours (estimate: 4.7h)
 
-### Notes
+### What I Built
+- [ ] `Dockerfile` — Multi-stage build
+- [ ] `docker-compose.yml` — Service orchestration
+- [ ] All services running in Docker
+
+### Key Concepts / Aha Moment / Still Confused About / Debugging Stories
 
 
 
@@ -339,36 +220,12 @@ _What broke? How did you fix it?_
 
 **Date**: _____________  
 **Time spent**: _____ hours (estimate: 3.7h)  
-**Spec**: `specs/005-testing-strategy.md`
+**Coverage**: ____% (target 80%+)
 
 ### What I Built
-- [ ] `tests/test_weather.py` - API tests
-- [ ] `tests/test_streaming.py` - SSE tests
-- [ ] `tests/conftest.py` - Fixtures
-- [ ] All tests passing
+- [ ] `tests/test_weather.py`, `tests/test_streaming.py`, `tests/conftest.py`
 
-### Test Coverage
-**Coverage**: _____%  
-**Target**: 80%+
-
-### Key Concepts
-1. 
-2. 
-3. 
-
-### Aha Moment
-
-
-
-### Still Confused About
-
-
-
-### Spec Accuracy
-- [ ] Spec matched implementation closely
-- [ ] Spec needed significant revision
-
-### Notes
+### Key Concepts / Aha Moment / Still Confused About
 
 
 
@@ -378,124 +235,28 @@ _What broke? How did you fix it?_
 
 **Date**: _____________  
 **Time spent**: _____ hours (estimate: 2.5h)  
-**Stretch goal chosen**: _______________
+**Stretch goal**: _______________
 
-### What I Built
-- [ ] Completed stretch goal
-- [ ] Production patterns added
-- [ ] Final polish and cleanup
+### What I Built / Final Reflections
 
-### Key Concepts
-1. 
-2. 
-3. 
-
-### Aha Moment
-
-
-
-### Final Reflections
-_What would you do differently? What surprised you most?_
 
 
 ---
 
-## Overall Project Reflection
+## Overall Reflection
 
-**Total time spent**: _____ hours (estimate: 24-25h)  
-**Completion date**: _____________
+**Total time**: _____ hours (estimate: 24-25h)
 
-### Biggest Wins
-1. 
-2. 
-3. 
-
-### Biggest Challenges
-1. 
-2. 
-3. 
-
-### Top 3 Learnings
-1. 
-2. 
-3. 
-
-### Spec-Driven Development Assessment
-
-**Did specs help or hinder?**
+### Biggest Wins / Challenges / Top Learnings
 
 
-**Would you use specs again?**
 
+### Did specs help or hinder? What would you do differently?
 
-**What would you change about the spec process?**
-
-
-### What's Next?
-_Future projects or topics to explore_
-
-1. 
-2. 
-3. 
-
-### Advice to Past Self
-_What would you tell yourself at the start?_
 
 
 ---
 
-## Running Log of Questions & Answers
+## Notes, Snippets & Mistakes
 
-_Use this section to track questions that arise and get answered throughout the project_
-
-**Q**: 
-**A**: 
-**When**: 
-
----
-
-**Q**: 
-**A**: 
-**When**: 
-
----
-
-**Q**: 
-**A**: 
-**When**: 
-
----
-
-## Resources That Helped
-
-_Keep track of useful docs, tutorials, Stack Overflow posts, etc._
-
-- **Topic**: [Link or description]
-  - Why it helped: 
-
----
-
-## Code Snippets Worth Remembering
-
-_Patterns or techniques you want to reuse_
-
-```python
-# Description
-# Code
-```
-
----
-
-## Mistakes & Lessons
-
-_Document errors and what you learned from them_
-
-**Mistake**: 
-**Lesson**: 
-**Fix**: 
-
----
-
-**Mistake**: 
-**Lesson**: 
-**Fix**: 
+_Running log — add as you go_

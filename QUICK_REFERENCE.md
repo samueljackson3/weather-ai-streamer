@@ -101,103 +101,31 @@ Give me hints, not full solution.
 
 ---
 
-## 📋 Step-by-Step Checklist
-
-For EACH micro-step:
-
-- [ ] Read the prompt in rigorous spec
-- [ ] Ask AI to generate (keep it small!)
-- [ ] **Review the generated code** - understand what it does
-- [ ] Predict output before running
-- [ ] Run and compare to prediction
-- [ ] Break it (remove key part, wrong type, etc.)
-- [ ] Fix it and understand why it broke
-- [ ] Ask conceptual question about it
-- [ ] Extend with your own variation
-- [ ] Mark complete in progress tracker
-
-**Time per step**: 10-45 min depending on complexity
-
----
-
 ## ⏱️ Time Expectations
 
-| Session | Steps | Est. Time | Reality Check |
-|---------|-------|-----------|---------------|
-| 1 | 8 steps | 3.7h | If done in <2h, too shallow |
-| 2 | 7-8 steps | 3.7h | Should feel substantial |
-| 3 | 8-9 steps | 5.7h | Longest session - LLM integration |
-| 4 | 6-7 steps | 4.7h | Docker can be tricky |
-| 5 | 7-8 steps | 3.7h | Testing requires thinking |
-| 6 | 5-6 steps | 2.5h | Polish & one stretch goal |
+| Session | Est. Time | Note |
+|---------|-----------|------|
+| 1 | 3.7h | Async fundamentals |
+| 2 | 3.7h | FastAPI + Weather API |
+| 3 | 5.7h | Ollama + Streaming (longest) |
+| 4 | 4.7h | Docker |
+| 5 | 3.7h | Testing |
+| 6 | 2.5h | Polish + stretch goal |
 
-**If completing in 25% of time** → You're reading code, not learning it
-
----
-
-## 🚫 Common Pitfalls
-
-### Don't Do This
-```
-❌ "Do Session X"
-❌ Copy-paste AI code
-❌ Run only working code
-❌ Skip challenges
-❌ Rush through to "finish"
-```
-
-### Do This Instead
-```
-✅ "Step XA: Generate [small specific thing]"
-✅ Type AI code yourself
-✅ Intentionally break code
-✅ Build challenges yourself first
-✅ Take time to understand deeply
-```
+Done in <40% of estimate = reading code, not learning it.
 
 ---
 
-## 🎓 Success Indicators
+## When Stuck
 
-### You're Learning Well If:
-- Taking close to estimated time per session
-- Can explain concepts without notes
-- Successfully breaking and fixing code
-- Building challenges without AI help (mostly)
-- Asking "why" questions frequently
-- Connecting concepts across sessions
-
-### You Need to Slow Down If:
-- Completing sessions in <50% of estimated time
-- Can't explain why code works
-- Haven't broken anything intentionally
-- Relying fully on AI for every line
-- Not asking questions
-- Concepts feel disconnected
-
----
-
-## 💡 When Stuck
-
-### 1. Spend 5-10 Min Yourself
-- Read error message carefully
-- Check previous steps for patterns
-- Try small experiments
-- Google the specific error
-
-### 2. Ask AI with Context
+1. Spend 5–10 min yourself — read the error, google it, try small experiments
+2. Ask AI with context:
 ```
-"I'm trying to [goal] based on [previous step].
-I tried [what you tried].
-Got error: [error message]
-I think it's because [hypothesis].
-Am I on right track?"
+"I'm trying to [goal] from [step].
+Tried [what you tried]. Got: [error].
+I think it's [hypothesis]. Am I right?"
 ```
-
-### 3. Break It Down Further
-```
-"This step is too big. Break it into 3 smaller steps."
-```
+3. If step is too big: "Break this step into 3 smaller steps."
 
 ### 4. Take a Break
 - 5-minute walk

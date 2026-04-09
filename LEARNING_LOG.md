@@ -58,6 +58,270 @@ _To explore during implementation:_
 - What happens if you forget `await` on a long-running coroutine?
 - Performance characteristics: How many concurrent tasks is too many?
 
+---
+
+## Session 2: FastAPI Basics + Weather API
+
+**Date**: April 9, 2026  
+**Time spent**: ~4.5 hours (estimate: 3.7h)  
+**Spec**: `specs/002-fastapi-weather-api.md`  
+**Status**: ✅ Complete with Steps A-F, validation, error handling, production-ready
+
+### What I Built
+- [x] `src/config.py` - Settings from `.env` with validation (fail-fast principle)
+  - `openweather_api_key`, `openweather_base_url`, `ollama_url`, `app_version`, `verify_ssl`
+  - Pydantic validates types at startup (errors before app runs)
+
+- [x] `src/models.py` - Type-safe request/response schemas
+  - `HealthResponse` - Simple health check (status: string, version: string)
+  - `Units` - Enum for temperature units (metric, imperial, standard)
+  - `WeatherResponse` - Full weather data with 8 fields
+
+- [x] `src/main.py` - Production-ready FastAPI application
+  - `GET /health` - Liveness check, auto-docs
+  - `GET /weather/{city}` - Real OpenWeather API integration
+  - Business logic function `fetch_weather()` - Testable in isolation
+  - Input validation - City name 2-50 chars, whitespace handled
+  - Error handling - 400, 404, 401, 503 with clear messages
+  - Async HTTP client (`httpx.AsyncClient`) - Non-blocking I/O
+
+### Key Concepts Learned
+
+1. **Type Hints as Contracts** 
+   - Type hints → Pydantic validation (automatic)
+   - Type hints → Auto-generated OpenAPI docs (free!)
+   - Type hints → IDE autocomplete (better DX)
+
+2. **Pydantic: Automatic Validation**
+   - Define schema once → validates input & output automatically
+   - Enums: FastAPI rejects invalid values in query params
+   - `model_config` controls behavior (env_file, case_sensitive, etc.)
+
+3. **Configuration Management**
+   - `pydantic-settings` reads `.env` automatically
+   - Validation happens at startup (fail-fast, not at first request)
+   - Missing required fields → clear error at launch, not at runtime
+   - Compare to Rails: `ENV['KEY']` returns nil silently; Pydantic fails loud
+
+4. **Separation of Concerns**
+   - Route handlers (`get_weather`) - HTTP concerns, validation
+   - Business logic (`fetch_weather`) - Pure async, testable, reusable
+   - Session 3 will import `fetch_weather` for Ollama integration
+
+5. **Error Handling Hierarchy**
+   - Input validation first (400 Bad Request)
+   - API-specific errors (404 City not found, 401 Invalid key)
+   - Network errors (503 Service unavailable, timeout)
+   - Each error has helpful detail message for debugging
+
+6. **Async HTTP Clients**
+   - `httpx.AsyncClient` (not `requests`) for async context
+   - Connection pooling for performance
+   - `verify=settings.verify_ssl` - environment-aware SSL handling
+
+### Aha Moments
+- **`**data` unpacking**: Takes dict and turns into kwargs for Pydantic validation
+- **Why separate business logic**: Testing without spinning up FastAPI app, reusable across routes
+- **Why route handlers validate input**: Clearer error messages, early rejection, less API chatter
+- **OpenAPI docs auto-generation**: Zero manual work; type hints + Pydantic = complete documentation
+
+### Still Confused About / Questions for Next
+- How to do lifespan management (create one client shared across requests)? → Session 3/4
+- How to test this without hitting real OpenWeather API? → Session 5 (mocking with pytest)
+- What's the difference between `Field()` and Query parameters in Pydantic? → Will explore in Step F+
+- Environment variables: How do you handle secrets safely in production? → Beyond scope for now
+
+### Improvements for Future Sessions
+1. **Better Step Progression**: Break Steps A-F into finer granularity (A-H perhaps)
+   - Step A: Health endpoint only (already good)
+   - Step B: Pydantic models (good)
+   - Step C: Config (good)
+   - Step D: Hardcoded response (good - let them test routing first)
+   - Step E: Real API call (SPLIT THIS)
+     - E1: Simple fetch without error handling
+     - E2: Add error handling for 404, 401, 500s
+   - Step F: Input validation (good)
+   - Future: Add Step G for async context managers / lifespan
+
+2. **Teach `**kwargs` Unpacking**: Before Pydantic validation, explain what `**data` means
+   - Show the equivalence: `HealthResponse(**data) == HealthResponse(status="ok", version="0.1.0")`
+   - This helps understand Pydantic's magic
+
+3. **Better Error Testing**: Add explicit section for "test these error scenarios"
+   - Empty city name → 400
+   - Non-existent city → 404
+   - Invalid units enum → 422
+   - Include expected response bodies in examples
+
+4. **Production Readiness Earlier**: SSL verification, environment variables weren't emphasized enough
+   - Move to Step C or create Step C.5 for environment-aware config
+   - Show how `VERIFY_SSL=false` in dev, `VERIFY_SSL=true` in prod
+
+5. **Concept Checks with Explanations**: Great to ask questions, but when user answer is incomplete:
+   - Explain WHY the full answer matters
+   - Show what goes wrong with the incomplete understanding
+   - Example: "SSL verification disabled is a security risk because..."
+
+6. **Code Comments**: Add more inline explanations of FastAPI magic
+   - Why `response_model=WeatherResponse` (validates output, powers docs)
+   - Why `-> WeatherResponse` return type hint (helps IDE, helps type checker)
+   - Why separate `fetch_weather()` function (testable, reusable)
+
+7. **Testing Preview**: Add note about pytest-asyncio patterns early
+   - Shows how the business logic is designed to be testable
+   - Motivates the separation of concerns
+
+### What Worked Well
+✅ Spec-driven approach - knowing where we were going helped prioritize
+✅ Progressive steps - each step built on previous, clear learning
+✅ Real API integration - not just mocks, actual OpenWeather calls
+✅ Error handling from day 1 - made it feel production-ready
+✅ Concept checks - forced understanding, not just typing code
+✅ Config as part of core - showed best practices early
+✅ Pydantic's auto-docs - magic moment when `/docs` worked perfectly
+
+### What To Improve
+⚠️ SSL certificate issue - wasted time on macOS SSL verification
+  → Document this upfront: "On macOS, you may need `VERIFY_SSL=false` in .env"
+⚠️ Step E too large - combining real API call + error handling at once
+  → Split into E1 (basic fetch), E2 (error handling)
+⚠️ Didn't explain `**kwargs` unpacking before using it
+  → Add 2-minute explanation before Pydantic models
+⚠️ Didn't emphasize lifespan/dependency injection until end
+  → Move Step F note about `Depends()` earlier as preview
+
+---
+
+## Session 2: FastAPI Basics + Weather API
+
+**Date**: April 9, 2026  
+**Time spent**: ~4.5 hours (estimate: 3.7h)  
+**Spec**: `specs/002-fastapi-weather-api.md`  
+**Status**: ✅ Complete with Steps A-F, validation, error handling, production-ready
+
+### What I Built
+- [x] `src/config.py` - Settings from `.env` with validation (fail-fast principle)
+  - `openweather_api_key`, `openweather_base_url`, `ollama_url`, `app_version`, `verify_ssl`
+  - Pydantic validates types at startup (errors before app runs)
+
+- [x] `src/models.py` - Type-safe request/response schemas
+  - `HealthResponse` - Simple health check (status: string, version: string)
+  - `Units` - Enum for temperature units (metric, imperial, standard)
+  - `WeatherResponse` - Full weather data with 8 fields
+
+- [x] `src/main.py` - Production-ready FastAPI application
+  - `GET /health` - Liveness check, auto-docs
+  - `GET /weather/{city}` - Real OpenWeather API integration
+  - Business logic function `fetch_weather()` - Testable in isolation
+  - Input validation - City name 2-50 chars, whitespace handled
+  - Error handling - 400, 404, 401, 503 with clear messages
+  - Async HTTP client (`httpx.AsyncClient`) - Non-blocking I/O
+
+### Key Concepts Learned
+
+1. **Type Hints as Contracts** 
+   - Type hints → Pydantic validation (automatic)
+   - Type hints → Auto-generated OpenAPI docs (free!)
+   - Type hints → IDE autocomplete (better DX)
+
+2. **Pydantic: Automatic Validation**
+   - Define schema once → validates input & output automatically
+   - Enums: FastAPI rejects invalid values in query params
+   - `model_config` controls behavior (env_file, case_sensitive, etc.)
+
+3. **Configuration Management**
+   - `pydantic-settings` reads `.env` automatically
+   - Validation happens at startup (fail-fast, not at first request)
+   - Missing required fields → clear error at launch, not at runtime
+   - Compare to Rails: `ENV['KEY']` returns nil silently; Pydantic fails loud
+
+4. **Separation of Concerns**
+   - Route handlers (`get_weather`) - HTTP concerns, validation
+   - Business logic (`fetch_weather`) - Pure async, testable, reusable
+   - Session 3 will import `fetch_weather` for Ollama integration
+
+5. **Error Handling Hierarchy**
+   - Input validation first (400 Bad Request)
+   - API-specific errors (404 City not found, 401 Invalid key)
+   - Network errors (503 Service unavailable, timeout)
+   - Each error has helpful detail message for debugging
+
+6. **Async HTTP Clients**
+   - `httpx.AsyncClient` (not `requests`) for async context
+   - Connection pooling for performance
+   - `verify=settings.verify_ssl` - environment-aware SSL handling
+
+### Aha Moments
+- **`**data` unpacking**: Takes dict and turns into kwargs for Pydantic validation
+- **Why separate business logic**: Testing without spinning up FastAPI app, reusable across routes
+- **Why route handlers validate input**: Clearer error messages, early rejection, less API chatter
+- **OpenAPI docs auto-generation**: Zero manual work; type hints + Pydantic = complete documentation
+
+### Still Confused About / Questions for Next
+- How to do lifespan management (create one client shared across requests)? → Session 3/4
+- How to test this without hitting real OpenWeather API? → Session 5 (mocking with pytest)
+- What's the difference between `Field()` and Query parameters in Pydantic? → Will explore in Step F+
+- Environment variables: How do you handle secrets safely in production? → Beyond scope for now
+
+### Improvements for Future Sessions
+1. **Better Step Progression**: Break Steps A-F into finer granularity (A-H perhaps)
+   - Step A: Health endpoint only (already good)
+   - Step B: Pydantic models (good)
+   - Step C: Config (good)
+   - Step D: Hardcoded response (good - let them test routing first)
+   - Step E: Real API call (SPLIT THIS)
+     - E1: Simple fetch without error handling
+     - E2: Add error handling for 404, 401, 500s
+   - Step F: Input validation (good)
+   - Future: Add Step G for async context managers / lifespan
+
+2. **Teach `**kwargs` Unpacking**: Before Pydantic validation, explain what `**data` means
+   - Show the equivalence: `HealthResponse(**data) == HealthResponse(status="ok", version="0.1.0")`
+   - This helps understand Pydantic's magic
+
+3. **Better Error Testing**: Add explicit section for "test these error scenarios"
+   - Empty city name → 400
+   - Non-existent city → 404
+   - Invalid units enum → 422
+   - Include expected response bodies in examples
+
+4. **Production Readiness Earlier**: SSL verification, environment variables weren't emphasized enough
+   - Move to Step C or create Step C.5 for environment-aware config
+   - Show how `VERIFY_SSL=false` in dev, `VERIFY_SSL=true` in prod
+
+5. **Concept Checks with Explanations**: Great to ask questions, but when user answer is incomplete:
+   - Explain WHY the full answer matters
+   - Show what goes wrong with the incomplete understanding
+   - Example: "SSL verification disabled is a security risk because..."
+
+6. **Code Comments**: Add more inline explanations of FastAPI magic
+   - Why `response_model=WeatherResponse` (validates output, powers docs)
+   - Why `-> WeatherResponse` return type hint (helps IDE, helps type checker)
+   - Why separate `fetch_weather()` function (testable, reusable)
+
+7. **Testing Preview**: Add note about pytest-asyncio patterns early
+   - Shows how the business logic is designed to be testable
+   - Motivates the separation of concerns
+
+### What Worked Well
+✅ Spec-driven approach - knowing where we were going helped prioritize
+✅ Progressive steps - each step built on previous, clear learning
+✅ Real API integration - not just mocks, actual OpenWeather calls
+✅ Error handling from day 1 - made it feel production-ready
+✅ Concept checks - forced understanding, not just typing code
+✅ Config as part of core - showed best practices early
+✅ Pydantic's auto-docs - magic moment when `/docs` worked perfectly
+
+### What To Improve
+⚠️ SSL certificate issue - wasted time on macOS SSL verification
+  → Document this upfront: "On macOS, you may need `VERIFY_SSL=false` in .env"
+⚠️ Step E too large - combining real API call + error handling at once
+  → Split into E1 (basic fetch), E2 (error handling)
+⚠️ Didn't explain `**kwargs` unpacking before using it
+  → Add 2-minute explanation before Pydantic models
+⚠️ Didn't emphasize lifespan/dependency injection until end
+  → Move Step F note about `Depends()` earlier as preview
+
 ### Questions for Next Session
 1. How does FastAPI use async under the hood for handling requests?
 2. What's the difference between `httpx.AsyncClient` and regular `requests` library?

@@ -7,10 +7,12 @@ Step D: Weather endpoint (hardcoded for now).
 Step E: Real API integration with httpx.
 """
 
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 import httpx
 from src.config import settings
 from src.models import HealthResponse, WeatherResponse, Units
+from src.ollama_client import build_weather_prompt, call_ollama, stream_ollama_summary
 
 # Create the FastAPI application instance
 app = FastAPI(
@@ -20,12 +22,26 @@ app = FastAPI(
 )
 
 
+# Dependency: provide an httpx.AsyncClient for routes
+async def get_http_client() -> httpx.AsyncClient:
+    """
+    Dependency injection for httpx.AsyncClient.
+    
+    FastAPI's dependency system ensures the client is created for the request
+    and properly closed after (via async context manager cleanup).
+    """
+    async with httpx.AsyncClient(verify=settings.verify_ssl) as client:
+        yield client
+
+
 # Business logic: fetch weather from OpenWeather API
 # This is separate from route handlers so it's testable in isolation
 async def fetch_weather(
     city: str,
     units: Units,
     client: httpx.AsyncClient,
+    state: str = None,
+    country: str = None,
 ) -> WeatherResponse:
     """
     Fetch weather data from OpenWeatherMap API.
@@ -40,6 +56,8 @@ async def fetch_weather(
         city: City name (e.g., "Seattle")
         units: Temperature units (metric, imperial, standard)
         client: httpx.AsyncClient for making HTTP requests
+        state: (Optional) US state abbreviation for disambiguation (e.g., "SC")
+        country: (Optional) 2-letter ISO country code (e.g., "US")
         
     Returns:
         WeatherResponse with parsed weather data
@@ -56,6 +74,12 @@ async def fetch_weather(
         "units": units.value,
         "appid": settings.openweather_api_key,
     }
+    
+    # Add optional disambiguation parameters
+    if state:
+        params["state"] = state
+    if country:
+        params["country"] = country
     
     try:
         # Make the request
@@ -132,7 +156,10 @@ async def health_check() -> HealthResponse:
 @app.get("/weather/{city}", response_model=WeatherResponse)
 async def get_weather(
     city: str,
-    units: Units = Query(default=Units.metric)
+    units: Units = Query(default=Units.imperial),
+    state: str = Query(default=None),
+    country: str = Query(default=None),
+    client: httpx.AsyncClient = Depends(get_http_client),
 ) -> WeatherResponse:
     """
     Get weather for a city.
@@ -141,7 +168,9 @@ async def get_weather(
     - city: City name (e.g., "Seattle"). Must be 2-50 characters.
     
     Query parameters:
-    - units: Temperature units (metric, imperial, standard). Default: metric
+    - units: Temperature units (metric, imperial, standard). Default: imperial
+    - state: (Optional) US state abbreviation (e.g., "SC") for disambiguation
+    - country: (Optional) 2-letter ISO country code (e.g., "US")
     
     Errors:
     - 400: City name is empty or invalid
@@ -164,8 +193,83 @@ async def get_weather(
         )
     
     # Make the API call
-    async with httpx.AsyncClient(verify=settings.verify_ssl) as client:
-        return await fetch_weather(city_clean, units, client)
+    return await fetch_weather(city_clean, units, client, state=state, country=country)
+
+
+# Define a route: GET /weather-ai/{city}
+@app.get("/weather-ai/{city}")
+async def get_weather_ai(
+    city: str,
+    units: Units = Query(default=Units.imperial),
+    state: str = Query(default=None),
+    country: str = Query(default=None),
+    stream: bool = Query(default=False),
+    client: httpx.AsyncClient = Depends(get_http_client),
+) -> dict:
+    """
+    Fetch weather data, then ask Ollama to summarize it.
+    
+    With stream=false (default): returns complete JSON summary.
+    With stream=true: returns SSE token stream.
+    
+    Path parameters:
+    - city: City name (e.g., "Seattle"). Must be 2-50 characters.
+    
+    Query parameters:
+    - units: Temperature units (metric, imperial, standard). Default: imperial
+    - state: (Optional) US state abbreviation (e.g., "SC") for disambiguation
+    - country: (Optional) 2-letter ISO country code (e.g., "US")
+    - stream: If true, return Server-Sent Events stream. Default: false
+    
+    Errors:
+    - 400: City name is empty or invalid
+    - 404: City not found in OpenWeather database
+    - 503: Weather service or AI service unavailable
+    """
+    
+    # Validate city name (same as /weather/{city})
+    city_clean = city.strip()
+    if not city_clean or len(city_clean) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="City name must be at least 2 characters"
+        )
+    if len(city_clean) > 50:
+        raise HTTPException(
+            status_code=400,
+            detail="City name must be 50 characters or less"
+        )
+    
+    # Step 1: Get weather data (reuse Session 2's function unchanged)
+    weather = await fetch_weather(city_clean, units, client, state=state, country=country)
+    
+    # Step 2: Build the prompt
+    prompt = build_weather_prompt(weather)
+    
+    if stream:
+        # Step 3a: Stream tokens back as SSE
+        # The client stays alive because FastAPI's dependency system keeps it open
+        # during the entire streaming response.
+        return StreamingResponse(
+            stream_ollama_summary(prompt, client),
+            media_type="text/event-stream",
+        )
+    
+    # Step 3b: Wait for complete response, return as JSON
+    try:
+        summary = await call_ollama(prompt, client)
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Is Ollama running? Try: ollama serve"
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service timed out. The model may be busy or too large."
+        )
+    
+    return {"city": weather.city, "summary": summary}
 
 
 # This is all we need to start!

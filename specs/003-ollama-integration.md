@@ -363,22 +363,74 @@ async def get_weather_ai(
 
 ### You Understand It
 
-- [ ] Can explain: "Why do we call `fetch_weather()` instead of rewriting the OpenWeather call inside `get_weather_ai()`?"
-  - Expected: Separation of concerns; `fetch_weather()` is already tested/validated; DRY without coupling
-- [ ] Can explain: "Why can't we raise `HTTPException(503)` after streaming has started?"
-  - Expected: HTTP status code is sent with the first byte of the response; once `200 OK` is on the wire, you can't change it. Errors must be in-band (e.g., `data: [ERROR]...`).
-- [ ] Can explain: "What is `AsyncGenerator` and why does `StreamingResponse` need one?"
-  - Expected: It's a function that `yield`s values lazily; `StreamingResponse` pulls from it on demand without buffering the entire response in memory
-- [ ] Can explain: "What's the difference between `client.post()` and `client.stream()`?"
-  - Expected: `.post()` waits for the full response body; `.stream()` opens a connection and lets you read the body incrementally
-- [ ] Can explain SSE vs WebSockets for this use case
-  - Expected: SSE is one-way (server → client only), simpler, works over plain HTTP; WebSockets are bidirectional but overkill here
+Answer these in your own words:
 
-### Stretch (Optional)
+- [ ] **Why do we call `fetch_weather()` instead of rewriting the OpenWeather call inside `get_weather_ai()`?** (Hint: Think about testing, code reuse, and separation of concerns.)
 
-- [ ] Try `GET /weather-ai/Seattle` with `llama3.2:1b` vs `llama3.2:3b` — measure response time and compare quality
-- [ ] Modify `build_weather_prompt()` to accept a `style` param: `"formal"` | `"casual"` | `"poetic"` and pass it as a query param
-- [ ] Add a `GET /weather-ai/batch?cities=Seattle,Tokyo,London&stream=true` that fetches all three cities with `asyncio.gather()` and streams all summaries
+- [ ] **Why can't we raise `HTTPException(503)` after streaming has started?** (Hint: When does the HTTP status code get sent to the client?)
+
+- [ ] **What is `AsyncGenerator` and why does `StreamingResponse` need one?** (Hint: What does `yield` do in an async function?)
+
+- [ ] **What's the difference between `client.post()` and `client.stream()`?** (Hint: When does each one wait for a response?)
+
+- [ ] **Explain SSE vs WebSockets for this use case.** Why did we pick SSE? When would you pick WebSockets instead?
+
+- [ ] **What happens to the streaming response when Ollama is down?** Test it and describe what the client sees. (HTTP status? Error message? Connection closes?)
+
+- [ ] **When you use `Depends(get_http_client)` in the route handler, how long does the client stay alive?** (Hint: When does FastAPI clean it up?)
+
+### Capstone Projects (Choose 1-2 to Deepen Learning)
+
+These are **production-like extensions** that teach you new patterns:
+
+**Capstone 1: Error Handling in Streams (Bug Fix)**
+- **Problem**: Currently, if Ollama dies mid-stream, the client just sees the connection close. The spec says we should send `data: [ERROR]...` in-band.
+- **Task**: 
+  - Wrap `stream_ollama_summary()` in a try-except
+  - When `client.stream()` or `response.aiter_lines()` raises an exception, yield `data: [ERROR] {message}\n\n`
+  - Test it: Kill Ollama and verify the client sees the error message in the stream
+- **Production insight**: Streaming error handling is fundamentally different from request-response. You're already committed to HTTP 200 when the error happens.
+
+**Capstone 2: Model Selection (Prompt Parameter)**
+- **Task**: 
+  - Add an optional `model` query param to `/weather-ai/{city}?model=llama3.2:1b` (default: `llama3.2:3b`)
+  - Pass it through to `call_ollama()` and `stream_ollama_summary()`
+  - Compare response times and quality between models
+- **Production insight**: How to make systems flexible without explosion of code complexity. When do you add a parameter vs. a config variable?
+
+**Capstone 3: Prompt Styling (Template Variations)**
+- **Task**:
+  - Modify `build_weather_prompt()` to accept a `style: str` parameter
+  - Create three versions: `"casual"`, `"formal"`, `"poetic"`
+  - Add `style` as a query param to the route
+  - Example casual: "What's the weather like today? Give me the vibe."
+  - Example formal: "Provide a professional weather summary with specific recommendations for outdoor activities."
+- **Production insight**: Prompt engineering at scale. How do you manage multiple variants without duplication?
+
+**Capstone 4: Batch Weather-AI (Concurrency)**
+- **Task**:
+  - Add `GET /weather-ai/batch?cities=Seattle,Tokyo,London`
+  - Parse the cities parameter
+  - Use `asyncio.gather()` to fetch weather + generate summaries for **all cities in parallel**
+  - Return either:
+    - Non-streaming: `{"results": [{"city": "Seattle", "summary": "..."}, ...]}`
+    - Streaming: Interleave SSE events from all cities (e.g., `data: [Seattle] It's cool...\n\ndata: [Tokyo] It's warm...`)
+- **Production insight**: Async concurrency scales. Fetching 3 cities in parallel is 3x faster than sequential. What about 100 cities?
+
+**Capstone 5: Caching (Idempotency)**
+- **Task**:
+  - Add a simple in-memory cache: if you request `/weather-ai/Seattle` twice within 5 minutes, return cached summary
+  - Use `time.time()` + a dict to implement it (don't use external libraries yet)
+  - When cache expires, refetch from OpenWeather + Ollama
+  - Test it: Call the same city twice and measure timing difference
+- **Production insight**: When caching is good (reduces external API load) vs. bad (stale data). What's the right TTL?
+
+### Stretch (No Submissions Required)
+
+- [ ] Try `GET /weather-ai/Seattle?model=llama3.2:1b` vs `llama3.2:3b` — measure response time and compare quality
+- [ ] Profile memory usage: Does streaming use less RAM than non-streaming? (Hint: Use `memory_profiler`)
+- [ ] Add structured logging: When was the LLM called? How long did it take? Log it to a file
+- [ ] Build a simple HTML client (`public/index.html`) that calls `/weather-ai/{city}?stream=true` and renders tokens as they arrive
 
 ---
 

@@ -79,23 +79,40 @@ async def stream_ollama_summary(
     
     Why AsyncGenerator? It lets FastAPI's StreamingResponse pull tokens
     one at a time without buffering the entire response in memory.
+    
+    Error handling: If Ollama dies mid-stream, we can't send HTTP 503
+    (headers already sent). Instead, we send the error in-band via SSE:
+    "data: [ERROR] message\\n\\n". This teaches the critical difference
+    between error handling in request-response vs. streaming responses.
     """
-    async with client.stream(
-        "POST",
-        f"{settings.ollama_url}/api/generate",
-        json={"model": "llama3.2:3b", "prompt": prompt, "stream": True},
-        timeout=60.0,
-    ) as response:
-        async for line in response.aiter_lines():
-            if not line.strip():
-                continue
-            try:
-                chunk = json.loads(line)
-                token = chunk.get("response", "")
-                if token:
-                    yield f"data: {token}\n\n"
-                if chunk.get("done"):
-                    yield "data: [DONE]\n\n"
-                    return
-            except json.JSONDecodeError:
-                continue
+    try:
+        async with client.stream(
+            "POST",
+            f"{settings.ollama_url}/api/generate",
+            json={"model": "llama3.2:3b", "prompt": prompt, "stream": True},
+            timeout=60.0,
+        ) as response:
+            async for line in response.aiter_lines():
+                if not line.strip():
+                    continue
+                try:
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
+                    if token:
+                        yield f"data: {token}\n\n"
+                    if chunk.get("done"):
+                        yield "data: [DONE]\n\n"
+                        return
+                except json.JSONDecodeError:
+                    continue
+    
+    except httpx.ConnectError:
+        # Ollama is not reachable. Send error via SSE.
+        yield "data: [ERROR] Failed to connect to AI service. Is Ollama running? Try: ollama serve\n\n"
+    except httpx.TimeoutException:
+        # Request took too long (model is slow, network is slow, or Ollama is overloaded)
+        yield "data: [ERROR] AI service timed out. The model may be busy or too large.\n\n"
+    except Exception as e:
+        # Unexpected error. Send it anyway so the client isn't left hanging.
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        yield f"data: [ERROR] Unexpected error: {error_msg}\n\n"

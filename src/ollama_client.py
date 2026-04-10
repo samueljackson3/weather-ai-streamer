@@ -19,13 +19,25 @@ def build_weather_prompt(weather: WeatherResponse) -> str:
     Key learning: Prompt engineering is domain-specific string formatting.
     The quality of this string directly impacts summary quality.
     Try different versions and compare outputs.
+    
+    Note: OpenWeather API returns wind speed in m/s regardless of units param.
+    We convert to the appropriate units for the user's request.
     """
     unit_label = {"metric": "°C", "imperial": "°F", "standard": "K"}[weather.units.value]
+    wind_label = {"metric": "m/s", "imperial": "mph", "standard": "m/s"}[weather.units.value]
+    
+    # Convert wind speed from m/s to appropriate units
+    # m/s to mph: multiply by 2.237
+    if weather.units.value == "imperial":
+        wind_speed = round(weather.wind_speed * 2.237, 2)
+    else:
+        wind_speed = weather.wind_speed
+    
     return (
         f"The current weather in {weather.city}, {weather.country} is "
         f"{weather.temperature}{unit_label} (feels like {weather.feels_like}{unit_label}), "
         f"{weather.description}, humidity {weather.humidity}%, "
-        f"wind speed {weather.wind_speed} m/s. "
+        f"wind speed {wind_speed} {wind_label}. "
         f"Write a 2-3 sentence friendly weather summary for someone deciding what to wear today. "
         f"Be specific and practical. Do not mention the city name in the first sentence."
     )

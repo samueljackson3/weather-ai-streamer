@@ -9,7 +9,9 @@ Step E: Real API integration with httpx.
 
 from fastapi import FastAPI, Query, HTTPException, Depends
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 import httpx
+import os
 from src.config import settings
 from src.models import HealthResponse, WeatherResponse, Units
 from src.ollama_client import build_weather_prompt, call_ollama, stream_ollama_summary
@@ -270,6 +272,12 @@ async def get_weather_ai(
         )
     
     return {"city": weather.city, "summary": summary}
+
+
+# Mount static files
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 # This is all we need to start!

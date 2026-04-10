@@ -134,44 +134,155 @@ _To explore during implementation:_
 
 ---
 
-## Session 3: Ollama + Streaming
+## Session 3: Ollama Integration + Streaming API
 
-**Date**: _____________  
-**Time spent**: _____ hours (estimate: 5.7h)  
-**Spec**: `specs/003-ollama-streaming.md`
+**Date**: April 9-10, 2026  
+**Time spent**: ~5-6 hours (estimate: 5.7h)  
+**Spec**: `specs/003-ollama-integration.md`  
+**Status**: ✅ Complete — Commits [df3c941](https://github.com/samueljackson/weather-ai-streamer/commit/df3c941), [32f8dad](https://github.com/samueljackson/weather-ai-streamer/commit/32f8dad)  
+**Git Commits**: 
+- `feat: streaming responses, location parameters, and capstone project spec`
+- `feat(session-3): Add error handling for streaming failures (Capstone 1)`
 
 ### What I Built
-- [ ] Ollama client integration
-- [ ] Streaming endpoint with SSE
-- [ ] Frontend with EventSource API
-- [ ] Prompt engineering for weather
 
-### Key Concepts
-1. 
-2. 
-3. 
+**Core Implementation:**
+- [x] `src/ollama_client.py` - Ollama HTTP client module
+  - `build_weather_prompt()` - Formats WeatherResponse into natural language prompt for LLM
+  - `call_ollama()` - Async non-streaming request to Ollama (wait for complete response)
+  - `stream_ollama_summary()` - Async generator for streaming tokens as Server-Sent Events (SSE)
+  - Error handling: ConnectError, TimeoutException, generic exceptions → yielded as SSE `data: [ERROR]...` events
 
-### Aha Moment
+- [x] `src/main.py` - Extended with new route
+  - `GET /weather-ai/{city}` - New endpoint combining weather fetch + LLM summarization
+  - `get_http_client()` - Dependency injector for httpx.AsyncClient (keeps client alive during response)
+  - Query params: `units` (metric|imperial|standard), `stream` (boolean)
+  - Non-streaming (default): Returns `{"city": "...", "summary": "..."}`  (HTTP 503 error handling)
+  - Streaming: Returns `text/event-stream` with tokens as `data: token\n\n` (in-band error handling)
 
+- [x] `specs/003-ollama-integration.md` - Detailed spec with micro-steps, knowledge checks, 5 capstone projects
 
+**Bonus (User Initiative):**
+- [x] `static/index.html` - Full HTML/CSS/JS UI
+  - Cloud animations background
+  - Form inputs: city name, units, stream checkbox
+  - Real-time streaming display (EventSource API)
+  - Error banner with dismiss button
+  - Responsive design (mobile-friendly)
+  - **Why this matters**: Turns spec validation into usable product. Shows feedback loops in real time.
 
-### Still Confused About
+### Key Concepts Learned
 
+1. **Ollama HTTP API (Wire Protocol)**
+   - Non-streaming: POST with `stream=false` → single JSON response with full text
+   - Streaming: POST with `stream=true` → newline-delimited JSON, one token per line
+   - Each line: `{"model":"...", "response":"token", "done":false}` until `"done":true`
+   - Tokens are sub-word (e.g., `"2"`, `" +"`, not whole words)
 
+2. **AsyncGenerator + StreamingResponse**
+   - `async def` function with `yield` → lazy evaluation, pull-based
+   - `StreamingResponse(async_gen)` → FastAPI pulls values on-demand without buffering
+   - Memory efficient: doesn't load entire response into RAM
+   - Compare: blocking generator would buffer, streaming wouldn't
 
-### Questions for Next Session
-1. 
-2. 
+3. **Error Handling: Request-Response vs Streaming**
+   - **Request-Response**: Exception → HTTP 503 (sent BEFORE response starts) ✅ Clean
+   - **Streaming**: Exception happens AFTER HTTP 200 sent → can't change status code ❌
+   - **Solution**: Errors go in-band via SSE: `data: [ERROR] message\n\n`
+   - **Key learning**: You can't send HTTP error codes after streaming starts. Headers are already sent.
+
+4. **Dependency Injection for Resource Management**
+   - `async def get_http_client()` with `yield` inside `async with` context manager
+   - FastAPI calls this before route handler, cleans up after
+   - For streaming: Client stays alive for entire response duration (not just route handler)
+   - Why it works: FastAPI holds dependency alive through the full response lifecycle
+
+5. **Prompt Engineering (Domain-Specific String Formatting)**
+   - Good prompts: specific (actual temp/humidity), actionable (what to wear), practical (fabric types)
+   - Testing: tried with hot day (Phoenix), cold day (Minneapolis) → adapts well
+   - Bad prompts: vague ("nice day"), generic advice ("dress appropriately"), ignore facts
+   - **Key insight**: Prompt quality directly impacts LLM output quality. Test early.
+
+6. **Server-Sent Events (SSE) vs WebSockets**
+   - **SSE**: One-way (server → client), uses regular HTTP, client-side `EventSource`, simple
+   - **WebSockets**: Bidirectional, persistent TCP, more complex, better for real-time chat
+   - For weather: SSE sufficient (uni-directional only), simpler to implement and deploy
+
+7. **Capstone 1: Streaming Error Handling**
+   - Bug: If Ollama dies, client sees silent connection close (no error message)
+   - Fix: Wrap `stream_ollama_summary()` in try-except, yield errors via SSE format
+   - Learning: Streaming error handling is fundamentally different from request-response
+   - Impact: Users now see helpful error message instead of hanging connection
+
+### Aha Moments
+- **Why Ollama streaming works**: HTTP response body is just newline-delimited JSON. No special magic, just reading lines as they arrive.
+- **The HTTP status code lock**: Once you send those first bytes (`HTTP/1.1 200`), you're committed to that status. Can't change it. Game-changing realization.
+- **AsyncGenerator mental model**: Think of it as a "lazy list" that produces values on-demand. FastAPI pulls from it without knowing how many values there are.
+- **Why `.stream()` not `.post()`**: `.post()` waits for entire body in memory. `.stream()` reads incrementally. For long responses, `.stream()` uses much less memory.
+
+### Still Confused About / Open Questions
+- What happens if client disconnects mid-stream? Does Ollama keep generating on the server? (Not tested, would need async signal handling)
+- Could I use ngrok/proxy to test mid-stream Ollama failure without killing the actual process?
+- How would you load-balance multiple Ollama instances behind this API? (Would need health checks, round-robin)
+
+### Quiz Answers (Knowledge Checks from Spec)
+1. ✅ Why reuse `fetch_weather()`? Separation of concerns + testable + DRY
+2. ✅ Why can't raise HTTPException after streaming starts? HTTP status code sent on first byte
+3. ⚠️ AsyncGenerator: lazy function with `yield`, StremingResponse pulls values on-demand without buffering
+4. ✅ `.post()` waits for full body, `.stream()` reads incrementally
+5. ⚠️ SSE: one-way (server→client), simpler, works over HTTP. WebSockets: bidirectional, persistent, better for chat
+6. ✅ Tested: Streaming with Ollama down → connection closes. Fixed: now sends `data: [ERROR]...` instead
+7. ✅ `Depends()` keeps client alive for entire respon**se lifecycle (request start → response end, including streaming duration)
+
+### Capstone Projects Attempted
+**Capstone 1: Error Handling in Streams** ✅ IMPLEMENTED
+- Problem: Silent connection close when Ollama dies mid-stream
+- Solution: Wrap generator in try-except, yield errors as SSE events
+- Result: Users see `data: [ERROR] Failed to connect...` instead of silence
+- Learning: Streams change the error handling game entirely
+
+**Other Capstones** (not yet attempted, available for future depth):
+- Capstone 2: Model selection (`?model=llama3.2:1b` vs `3b`)
+- Capstone 3: Prompt styling (`?style=casual|formal|poetic`)
+- Capstone 4: Batch weather-AI with `asyncio.gather()`
+- Capstone 5: In-memory caching with TTL
 
 ### Model Performance Notes
-_Which models did you try? Speed/quality trade-offs?_
-
+- **Model Used**: `llama3.2:3b` (3.2 billion parameters, Q4_K_M quantization)
+- **Speed**: ~1-2 seconds end-to-end (weather fetch + LLM generation)
+- **Quality**: Very practical weather summaries (specific fabrics, accessories, not generic)
+- **Resource**: Runs on M4 Mac without freezing system
+- **Not tested**: `llama3.2:1b` vs `3b` speed/quality trade-off (future capstone)
 
 ### Spec Accuracy
-- [ ] Spec matched implementation closely
-- [ ] Spec needed significant revision
+- ✅ Spec matched implementation closely
+- ✅ Micro-steps were well-ordered (A→B→C→D→E→F)
+- ✅ Knowledge checks pushed real learning (not just reading)
+- ⚠️ Mid-stream error testing is harder than listed; tested ConnectError instead
+- 🎯 Updated spec: Removed answer keys, added 5 capstones, added UI note
 
-### Notes
+### User Initiative Notes
+**UI Beyond Spec**: 
+- Built full HTML/CSS/JavaScript UI (`static/index.html`)
+- Features: Cloud animations, form inputs, real-time streaming display via EventSource API, error banners
+- Purpose: Test API through UI instead of just curl → much better feedback loop and usability
+- **Why important**: Turns theoretical API into tangible product. Reveals UX issues curl doesn't (slow rendering, error visibility, form feedback)
+- **Lesson**: Building a UI forces you to understand the API contract better (what fields matter, error cases users see, response times feeling)
+
+### Questions for Session 4
+1. How would you load-balance multiple Ollama instances? (health checks, round-robin, sticky sessions?)
+2. What's the best way to test streaming endpoints with proper async mocking?
+3. Should we add authentication to the `/weather-ai` endpoint?
+4. How would you add request logging (LLM calls, response times, tokens generated)?
+
+### Improvements for Future Sessions
+- ✅ Knowledge checks without answers (user writes answers, we discuss)
+- ✅ Capstone projects with varying difficulty (mini-tasks to deepen learning)
+- ✅ Mix theory + hands-on early (not theory heavy) 
+- ⚠️ Streaming error testing requires more setup; note that ConnectError is realistic, mid-stream is harder to replicate
+- 🎯 Emphasize dependency injection pattern earlier (it's important for resource management)
+
+
 
 
 

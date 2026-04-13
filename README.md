@@ -38,11 +38,17 @@ A learning project combining Python async/await, FastAPI, local LLM streaming (O
 
 ## What It Does
 
-Fetches weather data for a city and streams an AI-generated friendly summary using a locally-run LLM (Llama 3.2).
+Fetches weather data for a city and streams an AI-generated friendly summary using a locally-run LLM (tinyllama).
 
 ```
 User enters "Seattle" → FastAPI fetches weather → Ollama generates summary → Streams to browser
 ```
+
+### Architecture Notes
+- **LLM Model**: `tinyllama` (1.1B parameters, ~800MB, 5-10s inference on CPU)
+- **Containerization**: Docker Compose with custom Ollama image for corporate SSL support
+- **Corporate Zscaler Support**: Bakes CA certificate into Ollama image at build time (required for environments with SSL inspection)
+- **Performance**: End-to-end latency ~5-10 seconds (suitable for learning project)
 
 ---
 
@@ -94,10 +100,11 @@ weather-ai-streamer/
 
 Track progress in [LEARNING_LOG.md](LEARNING_LOG.md)
 
-- [ ] Session 1: Async Fundamentals (3.7h) - 8 micro-steps
-- [ ] Session 2: FastAPI + Weather API (3.7h) - 7-8 steps
-- [ ] Session 3: Ollama + Streaming (5.7h) - 8-9 steps
-- [ ] Session 4: Docker Containerization (4.7h) - 6-7 steps
+- [x] Session 1: Async Fundamentals (3.7h) - Complete
+- [x] Session 2: FastAPI + Weather API (3.7h) - Complete
+- [x] Session 3: Ollama + Streaming (5.7h) - Complete
+- [x] Session 4: Docker + Zscaler SSL (6-7h) - Complete
+- [x] Session 5: Performance Optimization (1-2h) - Complete
 - [ ] Session 5: Testing (3.7h) - 7-8 steps
 - [ ] Session 6: Polish + Stretch Goal (2.5h) - 5-6 steps
 

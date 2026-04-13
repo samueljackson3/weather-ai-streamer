@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     
     # Ollama (local LLM) configuration — ready for Session 3
     ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.1:8b"
     
     # App metadata
     app_version: str = "0.1.0"

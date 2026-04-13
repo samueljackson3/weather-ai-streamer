@@ -292,7 +292,7 @@ _To explore during implementation:_
 
 **Date**: April 10-13, 2026  
 **Time spent**: ~6-7 hours (estimate: 4.7h)  
-**Status**: ✅ Complete — Commit [abc123](https://github.com/samueljackson/weather-ai-streamer) (tinyllama optimization)
+**Status**: ✅ Complete — Commit [abc123](https://github.com/samueljackson/weather-ai-streamer) (llama3.2:3b upgrade)
 
 ### What I Built
 - [x] `Dockerfile` - Multi-stage build (builder + runtime stages)
@@ -364,53 +364,103 @@ _To explore during implementation:_
 - **Layer caching helps and hurts**: Great for iterating (build time), terrible when you forget `--build` (confusing behavior).
 
 ### Still Confused About / Questions for Next
-- Colima memory allocation: Is the 2GB container limit due to Colima VM constraints or Docker's own limits?
-- Could we use GPU acceleration on Apple silicon within Colima? (Likely no, but worth verifying)
+- **Answered**: Colima memory allocation — The 2G container limit was Docker's own `deploy.resources.limits.memory`. Colima's VM was provisioned at 10GiB total, but the container was capped at 2G by the compose config. These are independent constraints: Colima sets the VM ceiling, Docker `deploy` sets per-container limits.
+- Could we use GPU acceleration on Apple silicon within Colima? (Likely no — Metal is not exposed to the Colima VM)
 - How would you monitor Ollama's actual memory usage vs allocated limits?
 
 ---
 
-## Session 5: Performance Optimization & tinyllama Deployment
+## Session 5: Model Quality Upgrade — tinyllama → llama3.2:3b
 
 **Date**: April 13, 2026  
-**Time spent**: ~1-2 hours (estimate: 3.7h)  
+**Time spent**: ~1-2 hours  
 **Status**: ✅ Complete
 
-### What I Built  
-- [x] Switched from phi:2.7b to tinyllama model (~3-4x speed improvement)
-- [x] Reduced context window (2048 → 512 tokens)
-- [x] Optimized container memory allocation (5G → 2G)
-- [x] Verified health checks and service startup
-- [x] Confirmed end-to-end inference latency (~5-10s vs 30+s)
+### Context
+Session 4 ended with tinyllama working but producing poor-quality summaries — ignoring prompt constraints like "don't mention the city name in the first sentence" and generating generic, unhelpful output. This session upgraded to a model with meaningfully better instruction-following.
 
-### Performance Analysis
+### What I Built
+- [x] Switched model: tinyllama (1.1B) → llama3.2:3b (3B, Meta's latest small model)
+- [x] Raised Colima VM memory: 10GiB → 16GiB to give the larger model headroom
+- [x] Raised container memory limit: 2G → 6G
+- [x] Raised context window: 512 → 2048 tokens (tinyllama was cutting off its own output at 512)
+- [x] Made model config-driven: `settings.ollama_model` instead of hardcoded string in both call sites
+- [x] Updated healthcheck to match new model name
 
-**Before Optimization:**
-- Model: phi:2.7b (3.2B parameters)
-- Size: 1.6 GB (Q4 quantized)
-- Inference latency: 30+ seconds (CPU-only, 2-core system)
-- Context: 2048 tokens (trained capacity)
-- User experience: Slow, testing difficult
+### Model Comparison
 
-**After Optimization:**
-- Model: tinyllama (1.1B parameters, MIT-licensed)
-- Size: ~800 MB (Q4 quantized)
-- Inference latency: 5-10 seconds ✅ (3-4x faster)
-- Context: 512 tokens (sufficient for weather summaries)
-- User experience: Responsive, manageable ✅
+| Model | Params | Size | Instruction-following | Context | Verdict |
+|---|---|---|---|---|---|
+| tinyllama | 1.1B | 637MB | Poor — ignores constraints | 512 | Too small |
+| phi:2.7b | 2.7B | 1.6GB | Decent — but inconsistent | 2048 | OOM'd at 2G limit |
+| llama3.2:3b | 3B | 2.0GB | Good — Meta tuned for instructions | 8192 | ✅ Chosen |
+| mistral:7b | 7B | ~4.7GB | Very good | 8192 | Overkill for summaries |
 
-### Key Learnings
-1. **Model selection is the primary performance lever** - Switching models had more impact than increasing memory/cores
-2. **Smaller context windows are fine for simple tasks** - 512 tokens sufficient for weather summary (phi trained on 2048 but didn't need it)
-3. **Inference latency on CPU is a feature, not a bug** - Accepting slowness freed us to focus on model appropriateness
-4. **Health checks reveal readiness** - Healthcheck `ollama list | grep 'tinyllama'` proves model is loaded before API traffic
+### Infrastructure Changes
 
-### Trade-offs Accepted
-- **Capability**: tinyllama is "worse" at general reasoning than phi:2.7b, but excellent for specific tasks (weather summaries)
-- **Quality**: Output is still helpful and accurate for simple weather context
-- **Learning value**: Proves that production-like constraints (performance, memory) drive better design decisions than raw capability
+**Colima** (the macOS VM running Docker): `colima stop && colima start --memory 16 --cpu 4`
+- Host has 48GB RAM; leaving ~32GB for macOS + other work applications
+- Colima VM ceiling and Docker container `deploy.resources.limits` are independent constraints — both must be sized
 
-### DebugStories
+**docker-compose.yml**:
+- `OLLAMA_MODEL=llama3.2:3b` passed as env var to API service
+- Container memory: `2G → 6G` (model needs ~2.5GB, rest is OS/Ollama overhead)
+- Context window: `512 → 2048` (prevents mid-sentence truncation)
+
+**src/config.py**: Added `ollama_model: str = "llama3.2:3b"` — model is now overridable via env var without code changes
+
+### Key Concepts
+
+**1. Model Selection Framework**
+
+The right question isn't "what's the biggest model I can fit?" — it's "what's the minimum capability needed for the task?"
+
+For structured summarization (fixed format, constrained output, deterministic style), the key capability is **instruction-following**, not reasoning depth. Factors to evaluate:
+
+| Factor | Why it matters |
+|---|---|
+| Fine-tuning type | Instruction-tuned models (llama3.2, mistral-instruct) follow prompt constraints. Base models don't. |
+| Parameter count | More params ≠ better at your task. A 3B instruction-tuned model beats a 7B base model for prompts. |
+| Quantization | Q4 models are ~4x smaller with ~5% quality loss. Fine for summaries, bad for code generation. |
+| Context window | Must be larger than your prompt + expected output. 512 tokens caused truncation mid-sentence. |
+| RAM footprint | Rule of thumb: model file size × 1.2 for runtime overhead (KV cache, activations). |
+
+**2. Resource Allocation: Three Independent Layers**
+
+When running LLMs in Docker on macOS, there are three separate memory ceilings — a common source of confusion:
+
+```
+macOS Host (48GB)
+  └── Colima VM  ← colima start --memory 16    (VM ceiling, hard limit)
+        └── Docker Engine
+              └── ollama container  ← deploy.resources.limits.memory: 6G  (container ceiling)
+                    └── Ollama process  ← OLLAMA_NUM_CTX, model size  (model footprint)
+```
+
+- Raising only the container limit without raising Colima does nothing — Docker can't allocate beyond the VM.
+- Raising Colima without raising the container limit also does nothing — Docker enforces the lower bound.
+- Both must be sized correctly. Always size: `model_size × 1.2 ≤ container_limit ≤ Colima_memory - 2GB (OS overhead)`.
+
+**3. Context Window vs. Model Quality**
+
+A context window that's too small silently degrades output — the model doesn't error, it just truncates its own generation mid-thought. Signs of context starvation:
+- Summaries that end abruptly or trail off
+- Model repeating itself (attention degrading near window boundary)
+- Output that ignores later lines of the prompt (if prompt + output exceeds context)
+
+For weather summaries: prompt is ~80 tokens, expected output ~60 tokens. 512 was marginal. 2048 gives safe headroom.
+
+**4. Config-Driven Model Selection**
+
+Hardcoding a model name in application code is the same anti-pattern as hardcoding an API URL. Correct approach:
+- Default in `config.py`: `ollama_model: str = "llama3.2:3b"`
+- Override via env var: `OLLAMA_MODEL=mistral:7b` in `.env` or `docker-compose.yml`
+- No code changes needed to swap models in different environments
+
+### Key Learning
+**Instruction-following quality is not linear with model size.** tinyllama at 1.1B cannot reliably follow multi-constraint prompts ("2-3 sentences", "don't start with city name", "be practical"). llama3.2:3b was specifically fine-tuned by Meta for instruction-following, which is what structured summarization tasks need — not raw intelligence.
+
+### DebugStories (carried forward from Session 4)
 - **Issue**: `docker-compose up` took 7+ minutes. Thought Zscaler proxy was slow.
   - **Root cause**: Image layer caching — old Dockerfile still pulled phi:2.7b
   - **Fix**: One flag (`--build`) solved everything

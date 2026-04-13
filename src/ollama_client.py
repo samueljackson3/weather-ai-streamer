@@ -34,12 +34,17 @@ def build_weather_prompt(weather: WeatherResponse) -> str:
         wind_speed = weather.wind_speed
     
     return (
-        f"The current weather in {weather.city}, {weather.country} is "
-        f"{weather.temperature}{unit_label} (feels like {weather.feels_like}{unit_label}), "
-        f"{weather.description}, humidity {weather.humidity}%, "
-        f"wind speed {wind_speed} {wind_label}. "
-        f"Write a 2-3 sentence friendly weather summary for someone deciding what to wear today. "
-        f"Be specific and practical. Do not mention the city name in the first sentence."
+        f"Weather data for {weather.city}:\n"
+        f"- Temperature: {weather.temperature}{unit_label} (feels like {weather.feels_like}{unit_label})\n"
+        f"- Conditions: {weather.description}\n"
+        f"- Humidity: {weather.humidity}%\n"
+        f"- Wind: {wind_speed} {wind_label}\n\n"
+        f"Write exactly 2 sentences for someone deciding what to wear right now.\n"
+        f"Rules:\n"
+        f"- Use only the data above. Do not invent or convert any values.\n"
+        f"- Sentence 1: describe how it feels outside (temperature, wind, humidity).\n"
+        f"- Sentence 2: give one specific clothing recommendation.\n"
+        f"- No greeting, no sign-off, no city name in sentence 1, no marketing language."
     )
 
 
@@ -56,7 +61,12 @@ async def call_ollama(prompt: str, client: httpx.AsyncClient) -> str:
     """
     response = await client.post(
         f"{settings.ollama_url}/api/generate",
-        json={"model": settings.ollama_model, "prompt": prompt, "stream": False},
+        json={
+            "model": settings.ollama_model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.2, "num_predict": 120},
+        },
         timeout=60.0,
     )
     response.raise_for_status()
@@ -89,7 +99,12 @@ async def stream_ollama_summary(
         async with client.stream(
             "POST",
             f"{settings.ollama_url}/api/generate",
-            json={"model": settings.ollama_model, "prompt": prompt, "stream": True},
+            json={
+                "model": settings.ollama_model,
+                "prompt": prompt,
+                "stream": True,
+                "options": {"temperature": 0.2, "num_predict": 120},
+            },
             timeout=120.0,
         ) as response:
             async for line in response.aiter_lines():

@@ -215,7 +215,7 @@ async def get_weather_ai(
     With stream=true: returns SSE token stream.
     
     Path parameters:
-    - city: City name (e.g., "Seattle"). Must be 2-50 characters.
+    - city: City name (e.g., "Charleston"). Must be 2-50 characters.
     
     Query parameters:
     - units: Temperature units (metric, imperial, standard). Default: imperial
@@ -278,7 +278,3 @@ async def get_weather_ai(
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 if os.path.exists(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
-
-
-# This is all we need to start!
-# To run: uvicorn src.main:app --reload

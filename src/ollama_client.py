@@ -56,8 +56,8 @@ async def call_ollama(prompt: str, client: httpx.AsyncClient) -> str:
     """
     response = await client.post(
         f"{settings.ollama_url}/api/generate",
-        json={"model": "llama3.2:3b", "prompt": prompt, "stream": False},
-        timeout=30.0,
+        json={"model": "tinyllama", "prompt": prompt, "stream": False},
+        timeout=60.0,
     )
     response.raise_for_status()
     data = response.json()
@@ -89,8 +89,8 @@ async def stream_ollama_summary(
         async with client.stream(
             "POST",
             f"{settings.ollama_url}/api/generate",
-            json={"model": "llama3.2:3b", "prompt": prompt, "stream": True},
-            timeout=60.0,
+            json={"model": "tinyllama", "prompt": prompt, "stream": True},
+            timeout=120.0,
         ) as response:
             async for line in response.aiter_lines():
                 if not line.strip():

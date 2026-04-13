@@ -1,0 +1,37 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+    env_file: .env
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_NUM_CTX=512
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_BATCH_SIZE=128
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q 'tinyllama'"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 30s
+
+volumes:
+  ollama_data:

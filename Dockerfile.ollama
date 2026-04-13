@@ -1,0 +1,11 @@
+FROM ollama/ollama
+
+# Inject Zscaler cert bundle directly into the Go/system trust store
+COPY certs/zscaler.pem /tmp/zscaler.pem
+RUN cat /tmp/zscaler.pem >> /etc/ssl/certs/ca-certificates.crt && rm /tmp/zscaler.pem
+
+# Copy startup script
+COPY scripts/ollama-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]

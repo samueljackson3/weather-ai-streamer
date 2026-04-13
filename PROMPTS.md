@@ -491,6 +491,130 @@ Document what broke and how you fixed it. Then show the final setup for review.
 
 ---
 
+## Session 5: Testing Async Applications
+
+---
+
+### Step 5A: pytest-asyncio Basics (20 min)
+
+**Build** `tests/test_health.py`:
+- Install `pytest-asyncio` and `httpx` test client
+- Write async test for `GET /health`
+- Use FastAPI's `TestClient` and `AsyncClient`
+- Run with `pytest tests/`
+
+```python
+import pytest
+from httpx import AsyncClient, ASGITransport
+from src.main import app
+
+@pytest.mark.asyncio
+async def test_health():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/health")
+    assert response.status_code == 200
+```
+
+Run the test. Then paste for review.
+
+---
+
+### Step 5B: Mocking External APIs (30 min)
+
+**Build** `tests/test_weather.py`:
+- Mock `httpx.AsyncClient` so no real HTTP calls are made
+- Test `GET /weather/{city}` returns correct shape
+- Test 404 when city not found
+- Test 500 when API key missing
+
+```python
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_weather_success():
+    mock_response = AsyncMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "main": {"temp": 20.0, "feels_like": 19.0, "humidity": 80},
+        "weather": [{"description": "clear sky"}],
+        "name": "Tokyo",
+        "sys": {"country": "JP"},
+        "wind": {"speed": 5.0}
+    }
+    with patch("httpx.AsyncClient.get", return_value=mock_response):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/weather/Tokyo")
+    assert response.status_code == 200
+    assert response.json()["city"] == "Tokyo"
+```
+
+Test both happy path and error cases. Then paste for review.
+
+---
+
+### Step 5C: Testing SSE Streaming Endpoints (30 min)
+
+**Build** `tests/test_streaming.py`:
+- Test `GET /weather-ai/{city}` returns SSE stream
+- Collect all `data:` lines and assert `[DONE]` appears
+- Mock both OpenWeather AND Ollama calls
+
+```python
+@pytest.mark.asyncio
+async def test_weather_ai_streams():
+    # Mock weather fetch and ollama stream
+    # Collect SSE events from response
+    # Assert structure: data: tokens..., data: [DONE]
+    ...
+```
+
+This is harder — figure out how to collect streaming response lines. Then paste for review.
+
+---
+
+### Step 5D: Fixtures and conftest.py (20 min)
+
+**Build** `tests/conftest.py`:
+- Create reusable `async_client` fixture
+- Create `mock_weather_response` fixture (fake OpenWeather payload)
+- Create `mock_ollama_response` fixture
+- Refactor tests to use fixtures
+
+```python
+# conftest.py
+import pytest
+from httpx import AsyncClient, ASGITransport
+from src.main import app
+
+@pytest.fixture
+async def async_client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
+```
+
+Refactor all existing tests to use conftest fixtures. Then paste for review.
+
+---
+
+### Step 5E: Capstone — Full Test Suite (45 min)
+
+**No hints. Build a complete test suite covering the whole app.**
+
+`tests/` should include:
+- `conftest.py` — shared fixtures
+- `test_health.py` — health endpoint
+- `test_weather.py` — weather endpoint (success, city not found, missing key, timeout)
+- `test_weather_ai.py` — streaming endpoint (tokens arrive, [DONE] sent, errors handled)
+- All tests pass with `pytest tests/ -v`
+- No real HTTP calls (fully mocked)
+- Coverage: `pytest tests/ --cov=src`
+
+Target: **>80% coverage** on `src/`.
+
+When done, paste coverage report for review.
+
+---
+
 ## When Stuck
 
 ```
